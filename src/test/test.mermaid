@@ -1,0 +1,8 @@
+flowchart TD
+    Start([Start]) --> A{조건 A}
+    A -- 예 --> B[작업 B]
+    A -- 아니오 --> C[작업 C]
+    B --> D[작업 D]
+    C --> D
+    D --> End([End])
+
