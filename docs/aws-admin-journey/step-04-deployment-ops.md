@@ -14,6 +14,7 @@
 - **CodeDeploy**: EC2, 온프레미스, Lambda, ECS 등에 애플리케이션을 배포하는 서비스
 - **CodeCommit**: AWS에서 제공하는 Git 기반 소스 저장소
 - **CloudFormation**: 인프라를 코드(IaC)로 정의하고 동일하게 재현하는 서비스
+- **AWS SAM (Serverless Application Model)**: Lambda, API Gateway, DynamoDB 등 서버리스 리소스를 간결하게 정의하고 배포하는 프레임워크. CloudFormation을 내부적으로 사용
 - **CloudWatch**: 메트릭, 로그, 알람을 통합 모니터링하는 서비스
 - **CloudTrail**: 누가 어떤 API를 호출했는지 기록하는 감사 추적 서비스
 - **AWS Systems Manager**: 운영 작업(패치, 실행 명령, 파라미터 관리)을 중앙 제어하는 서비스
@@ -22,6 +23,7 @@
 ### 배포/운영에서 자주 같이 쓰는 조합
 
 - **CodePipeline + CodeBuild + CodeDeploy**: 표준 배포 자동화 조합
+- **CodePipeline + CodeBuild + SAM CLI**: 서버리스(Lambda) 앱 배포 자동화 조합
 - **CloudFormation + CodePipeline**: 인프라 변경까지 배포 파이프라인에 포함
 - **CloudWatch + SNS + Incident 대응 채널**: 알람 감지 후 담당자 즉시 통보
 - **CloudTrail + CloudWatch Logs**: 장애 시 변경 이력과 애플리케이션 로그를 함께 분석
@@ -35,6 +37,7 @@
 - **CloudTrail**은 "사고 분석용 감사 블랙박스"다.
 - **AWS Backup**은 "백업 정책 자동화 관리자"다.
 - **Systems Manager**는 "다수 서버 운영 자동화 도구"다.
+- **AWS SAM**은 "서버리스 앱의 CloudFormation 간편 버전 + 로컬 테스트 도구"다.
 
 ### 배포 전략에서 알아둘 AWS 개념
 
@@ -60,6 +63,31 @@
 - **CodeDeploy** 또는 **ECS 배포 단계**로 운영 반영
 - 배포 후 **CloudWatch**로 메트릭/로그 확인
 - 이상 시 **CloudWatch Alarm + SNS**로 즉시 알림
+
+### AWS SAM (Serverless Application Model)
+
+- **SAM이란**: Lambda, API Gateway, DynamoDB 등 서버리스 리소스를 `template.yaml` 한 파일에 정의하고, SAM CLI로 로컬 테스트부터 배포까지 처리하는 프레임워크
+- **CloudFormation과의 관계**: SAM 템플릿은 배포 시 CloudFormation 스택으로 변환된다. SAM = CloudFormation의 서버리스 특화 버전
+
+#### SAM 핵심 리소스 타입
+
+- `AWS::Serverless::Function` → Lambda 함수 정의
+- `AWS::Serverless::Api` → API Gateway 정의
+- `AWS::Serverless::SimpleTable` → DynamoDB 테이블 정의
+
+#### SAM CLI 주요 명령어
+
+- `sam init`: 서버리스 프로젝트 초기화 (템플릿 선택)
+- `sam build`: Lambda 함수 빌드 (의존성 포함 패키징)
+- `sam local invoke`: 로컬에서 Lambda 함수 직접 실행 테스트
+- `sam local start-api`: 로컬에서 API Gateway + Lambda 시뮬레이션
+- `sam deploy --guided`: S3에 패키지 업로드 후 CloudFormation 스택으로 배포
+- `sam logs`: 배포된 Lambda 함수의 CloudWatch 로그 확인
+
+#### 배포 파이프라인에서 SAM의 위치
+
+- CodePipeline이 트리거 → CodeBuild에서 `sam build` 실행 → `sam deploy`로 CloudFormation 스택 반영
+- 서버리스 환경에서는 CodeDeploy 대신 SAM CLI가 배포 역할을 담당하는 경우가 많다
 
 ### CloudWatch에서 꼭 보는 항목
 
@@ -88,6 +116,8 @@
 - CloudWatch Alarm 임계치를 너무 낮게 잡으면 어떤 문제가 생기는가?
 - CloudTrail 로그는 CloudWatch Logs와 어떤 점이 다른가?
 - RDS 복구에서 RPO와 RTO를 각각 어떻게 해석해야 하는가?
+- AWS SAM과 CloudFormation의 차이는 무엇인가?
+- `sam deploy`는 내부적으로 어떤 AWS 서비스를 사용하는가?
 
 ### 암기용 짧은 정리
 
@@ -95,6 +125,7 @@
 - CodeBuild = 빌드/테스트
 - CodeDeploy = 배포 실행
 - CloudFormation = 인프라 코드화
+- AWS SAM = 서버리스 앱 배포 프레임워크 (CloudFormation 기반)
 - CloudWatch = 메트릭/로그/알람
 - CloudTrail = API 감사 로그
 - Systems Manager = 운영 자동화
@@ -117,6 +148,7 @@
 
 - 다시 확인할 내용:
 - CodeDeploy 배포 방식(In-Place, Blue/Green) 세부 옵션
+- SAM CLI로 로컬 테스트 환경 구성 방법
 - CloudWatch Dashboard 실무 구성 예시
 - CloudTrail 이벤트 조회와 필터링 방법
 - AWS Backup 정책 템플릿(보존 기간, 주기) 설계 기준
@@ -126,3 +158,4 @@
 - [ok] 배포 관련 AWS 서비스 역할을 구분할 수 있다
 - [ok] CloudWatch와 CloudTrail의 용도 차이를 설명할 수 있다
 - [ok] 백업/복구 설계에서 RPO, RTO를 말할 수 있다
+- [ ] AWS SAM과 SAM CLI의 역할을 설명할 수 있다
