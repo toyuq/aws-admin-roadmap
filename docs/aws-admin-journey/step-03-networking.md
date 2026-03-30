@@ -179,3 +179,38 @@
 - [ ] 퍼블릭과 프라이빗 서브넷 차이를 이해했다
 - [ ] 보안 그룹과 NACL 차이를 이해했다
 - [ ] 라우팅 흐름을 대략 설명할 수 있다
+
+## 분석 및 개선 제안
+
+간단 요약
+- 전반적으로 핵심 개념(VPC, Subnet, IGW, NAT, Security Group, NACL 등)을 잘 정리함.
+- 초심자용으로 적절한 흐름과 암기용 요약 제공.
+
+강점
+- 개념별로 분리되어 있어 학습/복습하기 좋음.
+- 예시 흐름(웹서버↔WAS)으로 실무적 연결을 설명한 점이 유용함.
+
+개선 제안 (우선순위 포함)
+1. 검증/실습 명령어 추가 (우선)
+   - VPC, 서브넷, 라우트테이블, IGW, NAT 상태 확인용 AWS CLI 예시를 추가하면 이해와 실습에 도움이 됩니다.
+   - 예: aws ec2 describe-vpcs --filters Name=tag:Name,Values=... 등
+2. 다이어그램/시각 자료(중간)
+   - VPC/서브넷/IGW/NAT 간 흐름을 단순한 ASCII 또는 이미지 링크로 추가하면 직관적입니다.
+3. 트러블슈팅 체크리스트(중간)
+   - 내부 통신 문제 발생 시 확인 항목(보안 그룹, 라우트, NACL, 서브넷 할당 IP 등)을 더 구체화.
+4. CIDR 계산 예시(낮음)
+   - /24, /16에 대한 호스트 수 계산 예시를 1~2줄 추가.
+
+구체적 예시 (추가 제안 — 문서에 그대로 붙여넣어 실습 가능)
+- VPC 목록 조회:
+  - aws ec2 describe-vpcs --query 'Vpcs[*].{VpcId:VpcId,Cidr:CidrBlock,State:State}' --output table
+- 서브넷 목록 및 CIDR 확인:
+  - aws ec2 describe-subnets --query 'Subnets[*].{SubnetId:SubnetId,VpcId:VpcId,Cidr:CidrBlock,AZ:AvailabilityZone}' --output table
+- 라우트 테이블 확인:
+  - aws ec2 describe-route-tables --filters Name=vpc-id,Values=<VPC_ID> --output table
+- 보안 그룹 인바운드 규칙 확인:
+  - aws ec2 describe-security-groups --group-ids <SG_ID> --query 'SecurityGroups[*].IpPermissions' --output json
+
+권장 추가 항목(문서 편집 시)
+- "실습" 소제목을 만들어 위의 CLI 예시와 간단한 실습 시나리오(웹서버 퍼블릭 IP 확인 → 보안 그룹 포트 확인 → 내부 WAS 접근 테스트) 포함.
+- docs/progress 또는 docs/session-notes.md에 이번 수정/추가 내역을 한 줄 요약으로 기록.
