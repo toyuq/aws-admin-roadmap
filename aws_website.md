@@ -57,9 +57,15 @@ flowchart LR
 	U["사용자 브라우저"] -->|"HTTPS 요청"| R53["Route 53 (DNS)"]
 	R53 --> CF["CloudFront (CDN)"]
 	CF -->|"Origin Access Control"| S3["S3 버킷 (정적 사이트 파일)"]
+	U -->|"/api/* 요청"| APIGW["API Gateway"]
+	APIGW --> LMB["AWS Lambda"]
+	LMB --> DDB[("DynamoDB")]
 	CF --> CW["CloudWatch 지표/알람"]
+	LMB --> CW
+	APIGW --> CW
 	CW --> BUD["AWS Budgets 비용 알림"]
 	CF -. "선택: 보안 룰" .-> WAF["AWS WAF"]
+	APIGW -. "선택: 보안 룰" .-> WAF
 ```
 
 ---
@@ -88,6 +94,38 @@ flowchart LR
 ### 시나리오 A: 동적 기능 추가 필요
 - **API Gateway + Lambda + DynamoDB** 추가
 - 정적 프론트는 그대로 S3/CloudFront 유지
+
+#### 동적 페이지 작업 시 Lambda 적용 가이드
+
+- 권장 기본 구조:
+	- 프론트엔드(정적): `S3 + CloudFront`
+	- 동적 데이터/API: `API Gateway -> Lambda -> DynamoDB`
+- 이렇게 분리하면 정적 콘텐츠는 저비용/고성능 캐시를 유지하고,
+	동적 요청만 사용량 기반으로 과금되어 비용 효율이 좋습니다.
+
+##### 요청 흐름(예시)
+
+1. 사용자가 CloudFront로 웹 페이지 요청
+2. 정적 파일(HTML/CSS/JS)은 S3 원본에서 캐시 응답
+3. 페이지 내 동적 데이터 요청(`/api/*`)은 API Gateway로 전달
+4. API Gateway가 Lambda 실행
+5. Lambda가 DynamoDB 조회/저장 후 JSON 응답
+6. 프론트엔드가 동적 데이터를 화면에 렌더링
+
+##### Lambda 설계 포인트
+
+- 함수는 단일 책임으로 분리 (`getPosts`, `createPost` 등)
+- 타임아웃/메모리 최소값에서 시작 후 지표 기반 조정
+- 공통 로직은 Lambda Layer 또는 공용 모듈로 분리
+- 민감정보(DB 키 등)는 `Secrets Manager` 또는 `SSM Parameter Store` 사용
+- CloudWatch Logs와 오류 알람(예: 5xx, 에러율) 필수 설정
+
+##### 비용/운영 체크
+
+- 초기에는 온디맨드 과금으로 시작, 트래픽 패턴 확인 후 최적화
+- API Gateway 요청 수, Lambda 실행 시간/호출 수, DynamoDB RCU/WCU 모니터링
+- 캐시 가능한 API 응답은 CloudFront/API Gateway 캐시로 비용 절감
+- 배포는 `dev/stage/prod` 스테이지 분리 권장
 
 ### 시나리오 B: CMS/서버 렌더링 필요
 - 초기에는 Lightsail 또는 소형 EC2 1대로 시작
